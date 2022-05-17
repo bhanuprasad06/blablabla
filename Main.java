@@ -1,10 +1,25 @@
 public class Main{
+
 //Main execution
- public static void main(String[] args){
-  System.out.print("hello");
 
-}
+int moves, output, inputs, noofinputs;
+
+public static void main(String[] args){
+    welcome();
+    input();
+    calculation();
+  
+    }
 //Support functions
+     welcome(){
+        System.out.print("hello");
+    }
 
+    input(){
 
+    }
+    
+    calculation(){
+
+    }
 }
