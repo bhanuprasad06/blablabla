@@ -1,30 +1,39 @@
+import java.util.Scanner;
+
 public class Main{
 
 //Main execution
 
-int moves, output, inputs, noofinputs;
+
 
 public static void main(String[] args){
-    welcome();
-    input();
-    calculation();
+       Support s = new Support();
+       s.welcome();
+       s.input();
+       s.calculation();
   
     }
+}
+
+class Support{
+   
 //Support functions
-     welcome(){
+     void welcome(){
         System.out.println("hello");
+        System.out.println("welcome to solve the calculator game");
         
     }
 
-    input(){
+void input(){
         Scanner input = new Scanner(System.in);
         
-        System.out.ptint("enter number of moves");
-        moves = input.nextInt();
-        System.out.ptint("enter number of keys");
+        System.out.println("enter number of moves");
+      //  moves = input.nextInt();
+        System.out.println("enter number of keys");        System.out.println("enter the goal");
     }
+   
     
-    calculation(){
-
+    void calculation(){
+        
     }
 }
