@@ -12,11 +12,16 @@ public static void main(String[] args){
     }
 //Support functions
      welcome(){
-        System.out.print("hello");
+        System.out.println("hello");
+        
     }
 
     input(){
-
+        Scanner input = new Scanner(System.in);
+        
+        System.out.ptint("enter number of moves");
+        moves = input.nextInt();
+        System.out.ptint("enter number of keys");
     }
     
     calculation(){
