@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="My NodeJS Project" default="" basedir=".">
+	<description>NodeJS Automated Builds!</description>
+	<property environment="env" />
+	
+	<!-- Basic Properties -->
+	<property name="common" value="C:/Eclipse Projects/COMMON/ANT"/>
+	<property name="isclean" value="false"/>
+	<property name="isdebug" value="false"/>
+	<property name="isamazon" value="false"/>
+	
+	<!-- Custom properties -->
+	<property file="computer.properties" prefix="computer"/>
+	<property file="project.properties" prefix="project"/>
+		
+	
+	<!-- Custom Task Definitions -->
+	<taskdef resource="net/sf/antcontrib/antcontrib.properties"/>
+	
+	
+			
+	<target name="cleanup" description="Cleanup local files.">
+		<echo>Cleanup local files...</echo>
+		<delete dir="${project.bin}"/>
+		<echo>DONE</echo>
+	</target>
+	
+	<target name="corebuild">
+		<antcall target="createbuildfiles"/>
+		<antcall target="minify"/>
+		<antcall target="upload"/>
+		<antcall target="cleanup"/>		
+	</target>
+	
+	<target name="clean" description="Build Application">
+		<var name="isclean" unset="true"/>
+		<property name="isclean" value="true"/>
+		<var name="isdebug" unset="true"/>
+		<property name="isdebug" value="false"/>
+		<antcall target="corebuild"/>
+	</target>
+		
+	<target name="clean-debug" description="Build Application">
+		<var name="isclean" unset="true"/>
+		<property name="isclean" value="true"/>
+		<var name="isdebug" unset="true"/>
+		<property name="isdebug" value="true"/>
+		<antcall target="corebuild"/>
+	</target>
+
+	<target name="build" description="Build Application">
+		<var name="isclean" unset="true"/>
+		<property name="isclean" value="false"/>
+		<var name="isdebug" unset="true"/>
+		<property name="isdebug" value="false"/>
+		<antcall target="corebuild"/>
+	</target>
+	
+	<target name="build-debug" description="Build Application">
+		<var name="isclean" unset="true"/>
+		<property name="isclean" value="false"/>
+		<var name="isdebug" unset="true"/>
+		<property name="isdebug" value="true"/>
+		<antcall target="corebuild"/>
+	</target>
+	
+	<target name="build-amazon" description="Build Application on Amazon EC2">
+		<var name="isamazon" unset="true"/>
+		<property name="isamazon" value="true"/>
+		<antcall target="build"/>
+	</target>
+	
+	<target name="build-amazon-debug" description="Build Application on Amazon EC2">
+		<var name="isamazon" unset="true"/>
+		<property name="isamazon" value="true"/>
+		<antcall target="build-debug"/>
+	</target>
+	
+	<target name="clean-amazon" description="Build Application on Amazon EC2">
+		<var name="isamazon" unset="true"/>
+		<property name="isamazon" value="true"/>
+		<antcall target="clean"/>
+	</target>
+	
+	<target name="clean-amazon-debug" description="Build Application on Amazon EC2">
+		<var name="isamazon" unset="true"/>
+		<property name="isamazon" value="true"/>
+		<antcall target="clean-debug"/>
+	</target>
+	
+	<!-- Copy build files to server -->
+	<target name="upload">
+		<if>
+			<equals arg1="${isclean}" arg2="true"/>
+			<then>
+				<echo>Remove ${project.remotedir}</echo>
+				<sshexec host="${project.server}" username="${project.username}" 
+					password="${project.password}" command="/bin/rm -rf ${project.remotedir}" 
+					trust="true" verbose="true"	failonerror="true" port="${project.port}"/>
+				<echo>Create ${project.remotedir}</echo>
+				<sshexec host="${project.server}" username="${project.username}" 
+					password="${project.password}" command="/bin/mkdir ${project.remotedir}" 
+					trust="true" verbose="true"	failonerror="true" port="${project.port}"/>
+			</then>
+		</if>
+		<if>
+			<equals arg1="${isamazon}" arg2="true"/>
+			<then>
+				<scp keyfile="${project.amazon.keyfile}" remoteTodir="${project.amazon.username}@${project.amazon.server}:${project.amazon.remotedir}" password="${project.amazon.password}" trust="${project.amazon.trust}" port="${project.amazon.port}">
+					<fileset dir="${project.bin}">
+						<exclude name="**/*.project"/>
+						<exclude name="**/.*/**"/>
+						<exclude name="**/_*/**"/>
+						<exclude name="**/Thumbs.db"/>
+					</fileset>
+				</scp>
+			</then>
+			<else>
+				<scp remoteTodir="${project.username}@${project.server}:${project.remotedir}" password="${project.password}" trust="${project.trust}" sftp="${project.ssh}" port="${project.port}">
+					<fileset dir="${project.bin}">
+						<exclude name="**/*.project"/>
+						<exclude name="**/.*/**"/>
+						<exclude name="**/_*/**"/>
+						<exclude name="**/Thumbs.db"/>
+					</fileset>
+				</scp>
+			</else>
+		</if>
+	</target>
+
+		
+	<!-- Create build directory and files -->
+	<target name="createbuildfiles">
+		<echo>Create build files...</echo>
+		<mkdir dir="${project.bin}" />
+		<if>
+			<equals arg1="${isclean}" arg2="true"/>
+			<then>
+				<echo>Create basic files</echo>
+				<copy todir="${project.bin}">
+					<fileset dir="${project.src}">
+						<exclude name="**/*.project"/>
+						<exclude name="**/.*/**"/>
+						<exclude name="**/_*/**"/>
+						<exclude name="**/DATA/**"/>
+						<exclude name="**/*.md"/>
+						<exclude name="**/Thumbs.db"/>
+						<exclude name="**/cache.properties"/>
+					</fileset>
+				</copy>
+			</then>
+			<else>
+				<echo>Update basic files</echo>
+				<copy todir="${project.bin}">
+					<fileset dir="${project.src}">
+						<modified/>
+						<exclude name="**/*.project"/>
+						<exclude name="**/.*/**"/>
+						<exclude name="**/_*/**"/>
+						<exclude name="**/*.md/**"/>
+						<exclude name="**/DATA/**"/>
+						<exclude name="**/Thumbs.db"/>
+						<exclude name="**/cache.properties"/>
+					</fileset>
+				</copy>
+			</else>
+		</if>
+	</target>
+	
+	<!-- Minify JS/CSS in bin directory -->
+	<path id="yuicompressor.classpath">
+        <fileset dir="${computer.ant.extras.dir}">
+            <include name="**/yuicompressor-2.4.2.jar"/>
+            <include name="**/YUIAnt.jar"/>
+        </fileset>
+    </path>
+	<target name="minify">
+		<if>
+			<equals arg1="${isdebug}" arg2="false"/>
+			<then>
+				<echo>Minify JS/CSS</echo>
+				<taskdef name="yuicompress" classname="com.yahoo.platform.yui.compressor.YUICompressTask">
+		            <classpath>
+		                <path refid="yuicompressor.classpath"/>
+		            </classpath>
+		        </taskdef>
+				<if>
+					<equals arg1="${isclean}" arg2="true"/>
+					<then>
+						<yuicompress linebreak="${yui.linebreak}" warn="false" munge="yes" preserveallsemicolons="true" outputfolder="${project.bin}" >
+					            <fileset dir="${project.bin}">
+					            	<include name="**/*.css" />
+					                <include name="**/*.js" />
+							<exclude name="**/.*/**"/>
+							<exclude name="**/_*/**"/>
+							<exclude name="**/*.md/**"/>
+					            </fileset>
+					        </yuicompress>
+					</then>
+					<else>
+						<yuicompress linebreak="${yui.linebreak}" warn="false" munge="yes" preserveallsemicolons="true" outputfolder="${project.bin}" >
+					            <fileset dir="${project.bin}">
+					            	<modified/>
+					                <include name="**/*.css" />
+					                <include name="**/*.js" />
+							<exclude name="**/.*/**"/>
+							<exclude name="**/_*/**"/>
+							<exclude name="**/*.md/**"/>
+					            </fileset>
+					        </yuicompress>
+					</else>
+				</if>
+			</then>
+		</if>
+	</target>	
+</project>
